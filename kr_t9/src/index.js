@@ -1,12 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
 
 import "./styles.css";
-
-function fib(n) {
-  if (n <= 1) return n;
-  return fib(n - 2) + fib(n - 1);
-}
 
 function fib2(n) {
   if (n <= 1) {
@@ -16,80 +11,90 @@ function fib2(n) {
   return [fNminus1, fNminus2 + fNminus1];
 }
 
-function useFibonacciCounter(initialN) {
-  const [fibs, setFibs] = useState(getInitialFibs);
-  const [n, setN] = useState(initialN);
-  const currentFibonacciNumber = fibs.current;
+function fibbonnacciReducer(prevFibs, action) {
+  if (action.type === "GET_INITIAL_FIBS") {
+    console.log("GET_INITIAL_FIBS");
+    const { initialN } = action;
+    const [prev, current] = fib2(initialN);
+    console.log(current);
+    return {
+      prev,
+      current,
+      next: prev + current,
+      n: initialN
+    };
+  }
+  if (action.type === "INCREMENT_N") {
+    return {
+      n: prevFibs.n + 1,
+      prev: prevFibs.current,
+      current: prevFibs.next,
+      next: prevFibs.current + prevFibs.next
+    };
+  }
+  if (action.type === "DECREMENT_N") {
+    return {
+      n: prevFibs.n - 1,
+      prev: prevFibs.current - prevFibs.prev,
+      current: prevFibs.prev,
+      next: prevFibs.current
+    };
+  }
 
-  function getInitialFibs() {
+  if (action.type === "RESET") {
+    const { initialN } = action;
     const [prev, current] = fib2(initialN);
     return {
       prev,
       current,
-      next: prev + current
+      next: prev + current,
+      n: initialN
     };
   }
-  function incrementN() {
-    setN(prevN => {
-      const newN = prevN + 1;
-      setFibs(prevFibs => ({
-        prev: prevFibs.current,
-        current: prevFibs.next,
-        next: prevFibs.current + prevFibs.next
-      }));
-      return newN;
-    });
-  }
-  function decrementN() {
-    setN(prevN => {
-      const newN = prevN - 1;
-      setFibs(prevFibs => ({
-        prev: prevFibs.current - prevFibs.prev,
-        current: prevFibs.prev,
-        next: prevFibs.current
-      }));
-      return newN;
-    });
-  }
-  function resetN() {
-    setN(initialN);
-    setFibs(getInitialFibs);
-  }
 
-  return {
-    n,
-    currentFibonacciNumber,
-    incrementN,
-    decrementN,
-    resetN
-  };
+  return prevFibs;
+}
+
+const FIBO_INIT = {
+  prev: 0,
+  current: 0,
+  next: 0,
+  n: 0
+};
+function initFibbo(initial) {
+  return FIBO_INIT;
 }
 
 function FibonacciCounter({ initialN }) {
-  const {
-    n,
-    currentFibonacciNumber,
-    incrementN,
-    decrementN,
-    resetN
-  } = useFibonacciCounter(initialN);
+  console.log("GET_INITIAL_FIBS");
+  const [fibbo, fibboDispatch] = useReducer(
+    fibbonnacciReducer,
+    initialN,
+    initFibbo
+  );
+  console.log(fibbo);
+  const { current, n } = fibbo;
 
   useEffect(() => {
-    document.title = `I've calculated ${currentFibonacciNumber}`;
-  }, [currentFibonacciNumber]);
+    document.title = `I've calculated ${current}`;
+  }, [current]);
+
+  useEffect(() => {
+    fibboDispatch({ type: "GET_INITIAL_FIBS", initialN });
+  }, []);
 
   return (
     <div>
       <h1>
-        fib({n}) == {currentFibonacciNumber}
+        fibbo({n}) == {current}
       </h1>
-      <button onClick={incrementN}>
+      <button onClick={() => fibboDispatch({ type: "INCREMENT_N" })}>
         <h2>+1</h2>
       </button>
-      <button onClick={decrementN}>
+      <button onClick={() => fibboDispatch({ type: "DECREMENT_N" })}>
         <h2>-1</h2>
       </button>
-      <button onClick={resetN}>
+      <button onClick={() => fibboDispatch({ type: "RESET", initialN })}>
         <h2>Reset</h2>
       </button>
     </div>
@@ -119,7 +124,7 @@ function App() {
   const [spyOnUser, setSpyOnUser] = useState(false);
   return (
     <div className="App">
-      <FibonacciCounter initialN={40} />
+      <FibonacciCounter initialN={41} />
       <button onClick={() => setSpyOnUser(prev => !prev)}>
         Toggle spying on user
       </button>
